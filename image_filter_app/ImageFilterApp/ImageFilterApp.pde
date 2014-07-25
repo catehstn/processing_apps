@@ -11,12 +11,14 @@ static final int HUE_RANGE = 100;
 static final int IMAGE_MAX = 640;
 static final int RGB_COLOR_RANGE = 100;
 static final int SIDE_BAR_PADDING = 10;
-static final int SIDE_BAR_WIDTH = RGB_COLOR_RANGE + 2 * SIDE_BAR_PADDING + 50;
+static final int SIDE_BAR_WIDTH = RGB_COLOR_RANGE + 2 * SIDE_BAR_PADDING + 100;
 
 int imgWidth = IMAGE_MAX + 1;
 int imgHeight = IMAGE_MAX + 1;
 
 private ImageState imageState;
+
+ /* @pjs preload="testImg.jpg"; */
 
 boolean redrawImage = true;
 
@@ -25,14 +27,14 @@ public void setup() {
   imageState = new ImageState();
 
   // Set up the view.
-  size(760, 640);
+  size(810, 640);
   background(0);
 
   chooseFile();
 }
 
 public void draw() {
-  if (imageState.image == null) {
+  if (imageState.pimage == null) {
     return;
   }
   
@@ -53,37 +55,35 @@ public void draw() {
   int y = 2 * SIDE_BAR_PADDING;
   stroke(RGB_COLOR_RANGE, 0, 0);
   line(x, y, x + RGB_COLOR_RANGE, y);
-  line(x + imageState.redFilter(), y - FILTER_HEIGHT,
-      x + imageState.redFilter(), y + FILTER_HEIGHT);
+  line(x + imageState.getRedFilter(), y - FILTER_HEIGHT,
+      x + imageState.getRedFilter(), y + FILTER_HEIGHT);
   // Draw green line
   y += 2 * SIDE_BAR_PADDING;
   stroke(0, RGB_COLOR_RANGE, 0);
   line(x, y, x + RGB_COLOR_RANGE, y);
-  line(x + imageState.greenFilter(), y - FILTER_HEIGHT,
-      x + imageState.greenFilter(), y + FILTER_HEIGHT);
+  line(x + imageState.getGreenFilter(), y - FILTER_HEIGHT,
+      x + imageState.getGreenFilter(), y + FILTER_HEIGHT);
 
   // Draw blue line
   y += 2 * SIDE_BAR_PADDING;
   stroke(0, 0, RGB_COLOR_RANGE);
   line(x, y, x + RGB_COLOR_RANGE, y);
-  line(x + imageState.blueFilter(), y - FILTER_HEIGHT,
-      x + imageState.blueFilter(), y + FILTER_HEIGHT);
+  line(x + imageState.getBlueFilter(), y - FILTER_HEIGHT,
+      x + imageState.getBlueFilter(), y + FILTER_HEIGHT);
 
   // Draw white line.
   y += 2 * SIDE_BAR_PADDING;
   stroke(HUE_RANGE);
   line(x, y, x + 100, y);
-  line(x + imageState.hueTolerance(), y - FILTER_HEIGHT,
-      x + imageState.hueTolerance(), y + FILTER_HEIGHT);
+  line(x + imageState.getHueTolerance(), y - FILTER_HEIGHT,
+      x + imageState.getHueTolerance(), y + FILTER_HEIGHT);
 
   y += 4 * SIDE_BAR_PADDING;
   fill(RGB_COLOR_RANGE);
   text(INSTRUCTIONS, x, y);
-
-  updatePixels();
 }
 
-// Callback for selectInput(), has to be public to be found.
+// Called with image URL.
 public void fileSelected(String url) {
   if (url == null) {
     println("User hit cancel.");
@@ -96,28 +96,31 @@ public void fileSelected(String url) {
 }
 
 private void drawImage() {
+  println("starting redraw");
   imageMode(CENTER);
   imageState.updateImage(HUE_RANGE, RGB_COLOR_RANGE);
-  image(imageState.image, IMAGE_MAX/2, IMAGE_MAX/2, imgWidth, imgHeight);
+  image(imageState.pimage, int(IMAGE_MAX/2), int(IMAGE_MAX/2), imgWidth, imgHeight);
   redrawImage = false;
+  println("ending redraw");
 }
 
-// @Override
 public void keyPressed() {
+  println("key: " + key);
   switch(key) {
-  case 'c':
-    chooseFile();
-    break;
-  case 'p':
-    redrawImage = true;
-    break;
-  case 'w':
-    imageState.image.save(day() + hour() + minute() + second() + "-new.png");
-    break;
-  case ' ':
-    imageState.resetImage(IMAGE_MAX);
-    redrawImage = true;
-    break;
+    case 'c':
+      chooseFile();
+      break;
+    case 'p':
+      println("Process image");
+      redrawImage = true;
+      break;
+    case 'w':
+      imageState.pimage.save(day() + hour() + minute() + second() + "-new.png");
+      break;
+    case ' ':
+      imageState.resetImage(IMAGE_MAX);
+      redrawImage = true;
+      break;
   }
   imageState.processKeyPress(key, FILTER_INCREMENT, RGB_COLOR_RANGE, HUE_INCREMENT, HUE_RANGE);
   redraw();
@@ -126,7 +129,7 @@ public void keyPressed() {
 private void chooseFile() {
   // Choose the file.
  // selectInput("Select a file to process:", "fileSelected");
- String url = window.prompt("Enter an image URL", null);
+ String url = prompt("Enter an image URL", null);
  if (url != null) {
    fileSelected(url);
  }
@@ -147,15 +150,15 @@ public boolean hueInRange(float hue, int hueRange, float lower, float upper) {
   }
 }
 
-public HSBColor getDominantHue(PImage image, int hueRange) {
-  image.loadPixels();
-  int numberOfPixels = image.pixels.length;
+public HSBColor getDominantHue(PImage pimage, int hueRange) {
+  pimage.loadPixels();
+  int numberOfPixels = pimage.pixels.length;
   int[] hues = new int[hueRange];
   float[] saturations = new float[hueRange];
   float[] brightnesses = new float[hueRange];
 
   for (int i = 0; i < numberOfPixels; i++) {
-    int pixel = image.pixels[i];
+    int pixel = pimage.pixels[i];
     int hue = round(hue(pixel));
     float saturation = saturation(pixel);
     float brightness = brightness(pixel);
@@ -180,43 +183,43 @@ public HSBColor getDominantHue(PImage image, int hueRange) {
   return new HSBColor(hue, s, b);
 }
 
-public void processImageForHue(PImage image, int hueRange,
+public void processImageForHue(PImage pimage, int hueRange,
     int hueTolerance, boolean showHue) {
   colorMode(HSB, (hueRange - 1));
-  image.loadPixels();
-  int numberOfPixels = image.pixels.length;
-  HSBColor dominantHue = getDominantHue(image, hueRange);
+  pimage.loadPixels();
+  int numberOfPixels = pimage.pixels.length;
+  HSBColor dominantHue = getDominantHue(pimage, hueRange);
   // Manipulate photo, grayscale any pixel that isn't close to that hue.
   float lower = dominantHue.h - hueTolerance;
   float upper = dominantHue.h + hueTolerance;
   for (int i = 0; i < numberOfPixels; i++) {
-    int pixel = image.pixels[i];
+    int pixel = pimage.pixels[i];
     float hue = hue(pixel);
     if (hueInRange(hue, hueRange, lower, upper) == showHue) {
       float brightness = brightness(pixel);
-      image.pixels[i] = color(brightness);
+      pimage.pixels[i] = color(brightness);
     }
   }
-  image.updatePixels();
+  pimage.updatePixels();
 }
 
-public void applyColorFilter(PImage image, int minRed,
+public void applyColorFilter(PImage pimage, int minRed,
     int minGreen, int minBlue, int colorRange) {
   colorMode(RGB, colorRange);
-  image.loadPixels();
-  int numberOfPixels = image.pixels.length;
+  pimage.loadPixels();
+  int numberOfPixels = pimage.pixels.length;
   for (int i = 0; i < numberOfPixels; i++) {
-    int pixel = image.pixels[i];
-    float alpha = alpha(pixel);
-    float red = red(pixel);
-    float green = green(pixel);
-    float blue = blue(pixel);
+    int pixel = pimage.pixels[i];
+    float alphaVal = alpha(pixel);
+    float redVal = red(pixel);
+    float greenVal = green(pixel);
+    float blueVal = blue(pixel);
 
-    red = (red >= minRed) ? red : 0;
-    green = (green >= minGreen) ? green : 0;
-    blue = (blue >= minBlue) ? blue : 0;
+    redVal = (redVal >= minRed) ? redVal : 0;
+    greenVal = (greenVal >= minGreen) ? greenVal : 0;
+    blueVal = (blueVal >= minBlue) ? blueVal : 0;
 
-    image.pixels[i] = color(red, green, blue, alpha);
+    pimage.pixels[i] = color(redVal, greenVal, blueVal, alphaVal);
   }
 }
 
@@ -226,7 +229,7 @@ public class ImageState {
   int ColorMode_SHOW_DOMINANT_HUE = 1;
   int ColorMode_HIDE_DOMINANT_HUE = 2;
 
-  PImage image;
+  PImage pimage;
   String url;
 
   public static final int INITIAL_HUE_TOLERANCE = 5;
@@ -238,23 +241,23 @@ public class ImageState {
   int redFilter = 0;
 
   public ImageState() {
-    image = null;
+    pimage = null;
     hueTolerance = INITIAL_HUE_TOLERANCE;
   }
 
-  public int blueFilter() {
+  public int getBlueFilter() {
     return blueFilter;
   }
 
-  public int greenFilter() {
+  public int getGreenFilter() {
     return greenFilter;
   }
 
-  public int redFilter() {
+  public int getRedFilter() {
     return redFilter;
   }
 
-  public int hueTolerance() {
+  public int getHueTolerance() {
     return hueTolerance;
   }
 
@@ -266,21 +269,21 @@ public class ImageState {
     this.url = url;
   }
 
-  public String url() {
+  public String getUrl() {
     return url;
   }
 
   public void updateImage(int hueRange, int rgbColorRange) {
-    image = null;
-    image = loadImage(url);
+    pimage = null;
+    pimage = loadImage("testImg.jpg");
     if (colorModeState == ColorMode_SHOW_DOMINANT_HUE) {
-      processImageForHue(image, hueRange, hueTolerance, true);
+      processImageForHue(pimage, hueRange, hueTolerance, true);
     } else if (colorModeState == ColorMode_HIDE_DOMINANT_HUE) {
-      processImageForHue(image, hueRange, hueTolerance, false);
+      processImageForHue(pimage, hueRange, hueTolerance, false);
     }
-    applyColorFilter(image, redFilter, greenFilter,
+    applyColorFilter(pimage, redFilter, greenFilter,
         blueFilter, rgbColorRange);
-    image.updatePixels();
+    pimage.updatePixels();
   }
 
   public void processKeyPress(char key, int inc, int rgbColorRange, int hueIncrement, int hueRange) {
@@ -337,20 +340,20 @@ public class ImageState {
   public void setUpImage(int imageMax) {
     imgWidth = IMAGE_MAX + 1;
     imgHeight = IMAGE_MAX + 1;
-    image = null;
-    image = loadImage(url);
+    pimage = null;
+    pimage = loadImage("testImg.jpg");
     // Fix the size.
     if (imgWidth > imageMax || imgHeight > imageMax) {
       imgWidth = imageMax;
       imgHeight = imageMax;
       if (image.width > image.height) {
-        imgHeight = (imgHeight * image.height) / image.width;
+        imgHeight = int( (imgHeight * image.height) / image.width );
       } else {
-        imgWidth = (imgWidth * image.width) / image.height;
+        imgWidth = int( (imgWidth * image.width) / image.height );
       }
       
-      print("wh: " + imgWidth + ", " + imgHeight);
-      image.resize(imgWidth, imgHeight);
+      println("wh: " + imgWidth + ", " + imgHeight);
+      pimage.resize(imgWidth, imgHeight);
     }
   }
 
