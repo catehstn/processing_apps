@@ -276,7 +276,8 @@ public class ImageState {
 
   public void updateImage(int hueRange, int rgbColorRange) {
     pimage = null;
-    pimage = loadImage(url);
+    pimage = loadImage("testImg.jpg");
+    alert("loading image");
     if (colorModeState == ColorMode_SHOW_DOMINANT_HUE) {
       processImageForHue(pimage, hueRange, hueTolerance, true);
     } else if (colorModeState == ColorMode_HIDE_DOMINANT_HUE) {
@@ -341,8 +342,7 @@ public class ImageState {
     imgWidth = IMAGE_MAX + 1;
     imgHeight = IMAGE_MAX + 1;
     pimage = null;
-    url = split(url, ".jpg")[0];
-    pimage = loadImage(url, "jpg");
+    pimage = loadImage("testImg.jpg");
     if (pimage == null) {
       println("image null");
     } else {
