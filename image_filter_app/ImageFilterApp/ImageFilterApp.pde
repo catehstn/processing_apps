@@ -81,6 +81,8 @@ public void draw() {
   y += 4 * SIDE_BAR_PADDING;
   fill(RGB_COLOR_RANGE);
   text(INSTRUCTIONS, x, y);
+  
+  updatePixels();
 }
 
 // Called with image URL.
@@ -105,7 +107,6 @@ private void drawImage() {
 }
 
 public void keyPressed() {
-  println("key: " + key);
   switch(key) {
     case 'c':
       chooseFile();
@@ -208,6 +209,7 @@ public void applyColorFilter(PImage pimage, int minRed,
   colorMode(RGB, colorRange);
   pimage.loadPixels();
   int numberOfPixels = pimage.pixels.length;
+  println("apply color filter, pixels: " + numberOfPixels);
   for (int i = 0; i < numberOfPixels; i++) {
     int pixel = pimage.pixels[i];
     float alphaVal = alpha(pixel);
@@ -346,10 +348,12 @@ public class ImageState {
     if (imgWidth > imageMax || imgHeight > imageMax) {
       imgWidth = imageMax;
       imgHeight = imageMax;
-      if (image.width > image.height) {
-        imgHeight = int( (imgHeight * image.height) / image.width );
+      if (pimage.width > pimage.height) {
+        println("wider: " + pimage.width + ", " + pimage.height);
+        imgHeight = int( (imgHeight * pimage.height) / pimage.width );
       } else {
-        imgWidth = int( (imgWidth * image.width) / image.height );
+        println("taller: " + pimage.width + ", " + pimage.height);
+        imgWidth = int( (imgWidth * pimage.width) / pimage.height );
       }
       
       println("wh: " + imgWidth + ", " + imgHeight);
