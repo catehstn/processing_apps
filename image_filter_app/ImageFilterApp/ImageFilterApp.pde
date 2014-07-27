@@ -18,8 +18,6 @@ int imgHeight = IMAGE_MAX + 1;
 
 private ImageState imageState;
 
- /* @pjs preload="testImg.jpg"; */
-
 boolean redrawImage = true;
 
 public void setup() {
@@ -82,7 +80,7 @@ public void draw() {
   fill(RGB_COLOR_RANGE);
   text(INSTRUCTIONS, x, y);
   
-  updatePixels();
+ // updatePixels();
 }
 
 // Called with image URL.
@@ -90,6 +88,7 @@ public void fileSelected(String url) {
   if (url == null) {
     println("User hit cancel.");
   } else {
+    println("loading image from: " + url);
     imageState.setUrl(url);
     imageState.setUpImage(IMAGE_MAX);
     redrawImage = true;
@@ -112,7 +111,6 @@ public void keyPressed() {
       chooseFile();
       break;
     case 'p':
-      println("Process image");
       redrawImage = true;
       break;
     case 'w':
@@ -130,7 +128,8 @@ public void keyPressed() {
 private void chooseFile() {
   // Choose the file.
  // selectInput("Select a file to process:", "fileSelected");
- String url = prompt("Enter an image URL", null);
+ String url = "https://c2.staticflickr.com/8/7060/6983342195_3492a66098_z.jpg";
+ prompt("Enter an image URL", null);
  if (url != null) {
    fileSelected(url);
  }
@@ -160,28 +159,28 @@ public HSBColor getDominantHue(PImage pimage, int hueRange) {
 
   for (int i = 0; i < numberOfPixels; i++) {
     int pixel = pimage.pixels[i];
-    int hue = round(hue(pixel));
-    float saturation = saturation(pixel);
-    float brightness = brightness(pixel);
-    hues[hue]++;
-    saturations[hue] += saturation;
-    brightnesses[hue] += brightness;
+    int hueVal = round(hue(pixel));
+    float saturationVal = saturation(pixel);
+    float brightnessVal = brightness(pixel);
+    hues[hueVal]++;
+    saturations[hueVal] += saturationVal;
+    brightnesses[hueVal] += brightnessVal;
   }
 
   // Find the most common hue.
   int hueCount = hues[0];
-  int hue = 0;
+  int hueVal = 0;
   for (int i = 1; i < hues.length; i++) {
     if (hues[i] > hueCount) {
       hueCount = hues[i];
-      hue = i;
+      hueVal = i;
     }
   }
 
   // Return the color to display.
-  float s = saturations[hue] / hueCount;
-  float b = brightnesses[hue] / hueCount;
-  return new HSBColor(hue, s, b);
+  float s = saturations[hueVal] / hueCount;
+  float b = brightnesses[hueVal] / hueCount;
+  return new HSBColor(hueVal, s, b);
 }
 
 public void processImageForHue(PImage pimage, int hueRange,
@@ -195,10 +194,10 @@ public void processImageForHue(PImage pimage, int hueRange,
   float upper = dominantHue.h + hueTolerance;
   for (int i = 0; i < numberOfPixels; i++) {
     int pixel = pimage.pixels[i];
-    float hue = hue(pixel);
-    if (hueInRange(hue, hueRange, lower, upper) == showHue) {
-      float brightness = brightness(pixel);
-      pimage.pixels[i] = color(brightness);
+    float hueVal = hue(pixel);
+    if (hueInRange(hueVal, hueRange, lower, upper) == showHue) {
+      float brightnessVal = brightness(pixel);
+      pimage.pixels[i] = color(brightnessVal);
     }
   }
   pimage.updatePixels();
@@ -209,7 +208,7 @@ public void applyColorFilter(PImage pimage, int minRed,
   colorMode(RGB, colorRange);
   pimage.loadPixels();
   int numberOfPixels = pimage.pixels.length;
-  println("apply color filter, pixels: " + numberOfPixels);
+  
   for (int i = 0; i < numberOfPixels; i++) {
     int pixel = pimage.pixels[i];
     float alphaVal = alpha(pixel);
@@ -277,14 +276,13 @@ public class ImageState {
 
   public void updateImage(int hueRange, int rgbColorRange) {
     pimage = null;
-    pimage = loadImage("testImg.jpg");
+    pimage = loadImage(url);
     if (colorModeState == ColorMode_SHOW_DOMINANT_HUE) {
       processImageForHue(pimage, hueRange, hueTolerance, true);
     } else if (colorModeState == ColorMode_HIDE_DOMINANT_HUE) {
       processImageForHue(pimage, hueRange, hueTolerance, false);
     }
-    applyColorFilter(pimage, redFilter, greenFilter,
-        blueFilter, rgbColorRange);
+    applyColorFilter(pimage, redFilter, greenFilter, blueFilter, rgbColorRange);
     pimage.updatePixels();
   }
 
@@ -343,20 +341,24 @@ public class ImageState {
     imgWidth = IMAGE_MAX + 1;
     imgHeight = IMAGE_MAX + 1;
     pimage = null;
-    pimage = loadImage("testImg.jpg");
+    url = split(url, ".jpg")[0];
+    pimage = loadImage(url, "jpg");
+    if (pimage == null) {
+      println("image null");
+    } else {
+      println("wh: " + pimage.width + ", " + pimage.height);
+    }
     // Fix the size.
     if (imgWidth > imageMax || imgHeight > imageMax) {
       imgWidth = imageMax;
       imgHeight = imageMax;
       if (pimage.width > pimage.height) {
-        println("wider: " + pimage.width + ", " + pimage.height);
         imgHeight = int( (imgHeight * pimage.height) / pimage.width );
       } else {
-        println("taller: " + pimage.width + ", " + pimage.height);
         imgWidth = int( (imgWidth * pimage.width) / pimage.height );
       }
       
-      println("wh: " + imgWidth + ", " + imgHeight);
+      println("image size: " + imgWidth + ", " + imgHeight);
       pimage.resize(imgWidth, imgHeight);
     }
   }
